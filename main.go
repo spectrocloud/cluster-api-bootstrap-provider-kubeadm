@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal/locking"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,6 +55,13 @@ func main() {
 		enableLeaderElection bool
 		syncPeriod           time.Duration
 		watchNamespace       string
+		concurrency          int
+	)
+
+	flag.IntVar(&concurrency,
+		"concurrency",
+		2,
+		"Number of kubeadmconfig to process simultaneously",
 	)
 
 	flag.StringVar(
@@ -114,10 +122,10 @@ func main() {
 
 	if err := (&controllers.KubeadmConfigReconciler{
 		Client:               mgr.GetClient(),
-		SecretsClientFactory: controllers.ClusterSecretsClientFactory{},
+		SecretsClientFactory: controllers.ClusterSecretsLocalClientFactory{},
 		Log:                  ctrl.Log.WithName("KubeadmConfigReconciler"),
 		KubeadmInitLock:      locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient()),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfigReconciler")
 		os.Exit(1)
 	}

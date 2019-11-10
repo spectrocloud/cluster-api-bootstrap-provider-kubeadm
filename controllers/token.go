@@ -23,6 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -46,6 +47,22 @@ func (f ClusterSecretsClientFactory) NewSecretsClient(client client.Client, clus
 	}
 
 	corev1Client, err := remoteClient.CoreV1()
+	if err != nil {
+		return nil, err
+	}
+
+	return corev1Client.Secrets(metav1.NamespaceSystem), nil
+}
+
+// local incluster config
+type ClusterSecretsLocalClientFactory struct{}
+
+func (f ClusterSecretsLocalClientFactory) NewSecretsClient(client client.Client, cluster *clusterv1.Cluster) (corev1.SecretInterface, error) {
+	c, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	corev1Client, err := corev1.NewForConfig(c)
 	if err != nil {
 		return nil, err
 	}

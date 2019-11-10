@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -67,8 +68,9 @@ type KubeadmConfigReconciler struct {
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
-func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&bootstrapv1.KubeadmConfig{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
